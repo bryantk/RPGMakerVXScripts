@@ -1,0 +1,113 @@
+#==============================================================================
+# 
+# BKB extentions - Sound Manager
+# -- Last Updated: 10-12-2014
+# -- Author: Kyle Bryant
+# 
+#==============================================================================
+$imported = {} if $imported.nil?
+$imported["BKB-SoundManager"] = true
+#==============================================================================
+# Updates
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# 10.12.2014 - Started and Finished Script.
+#==============================================================================
+# Introduction
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# This script provides a common repository of all game sounds, to prevent you
+# from creating a new sound and having to hunt down every single time you used 
+# the old one.
+#
+#==============================================================================
+# Instructions
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# To install this script, open up your script editor and copy/paste this script
+# to an open slot below 'Materials' but above 'Main'. Remember to save.
+#
+# Rather than call a sound with a hard linked drag and drop, call the sound 
+# 'code name' via script. If you need to change the sound later, simply edit the
+# links in the script rather than hunt down every instance.
+#==============================================================================
+# Compatibility
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# This script is made strictly for RPG Maker VX Ace, due to the calls to the 
+# RPGVX sound players, but you could tweak that to work with other things. :)
+#==============================================================================
+
+
+#==============================================================================
+# Configuration
+#==============================================================================
+
+module BKB
+  module SOUND_MANAGER
+    DEBUG = true 
+    SOUND_HASH = {
+      "pound" => "dbz_pound",
+      "drinkDown" => "dbz_pound",
+      "itemGet" => "dbz_ui_ShopBuy",
+      "moveBox" => "dbz_heavyMovement",
+      "bell" => "Bell"
+    }
+  end
+end
+#==============================================================================
+# Editing anything past this point may potentially be very dangerous to your
+# project's stability and very existence. DO NOT ATTEMPT... That is unless you
+# know what you are doing, then please go right ahead and muck about in my code.
+# Just be sure to give me credit for the base and don't mock my flaws. The code
+# is very sensitive about its self image. May the segfaults never find you.
+#==============================================================================
+# Licensing + Legal
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# Sound Manager by Kyle Bryant is licensed under a Creative Commons 
+# Attribution-ShareAlike 4.0 International License.
+# The above ^^^ MUST appear in your usage and/or modifications of this work
+# This work is free to use for any project, but please credit me somewhere
+# (somewhere viable is preferred),  and let me know what you used this script for
+# on twitter @segFaultOnLine1 so I can get hyped about it as well!
+# Donations are always appreciated, such as cookies or a copy of your game.
+# Good luck and happy development!
+#==============================================================================
+# ! BKB extensions - Sound Manager
+#==============================================================================
+
+
+#==============================================================================
+# ** Teh Code
+#==============================================================================
+
+
+def PlaySound(soundName, volume=100, pitch=100)
+  bkb_play_sound(soundName, volume, pitch)
+end
+
+def bkb_play_sound(soundName, volume, pitch)
+  soundLookup = BKB::SOUND_MANAGER::SOUND_HASH[soundName]
+  if soundLookup
+   print("#{soundName} => #{soundLookup} ")
+   soundName = soundLookup 
+ end
+ return if soundName == ""
+  print("#{$game_system.playtime}: Playing sound '#{soundName}' at #{volume}% volume with pitch #{pitch}\n") if BKB::SOUND_MANAGER::DEBUG
+  #play sound
+  sound = RPG::SE.new(soundName, volume, pitch).play
+end
+
+
+
+def PlayMusic(musicName, volume=100, pitch=100)
+  bkb_play_music(musicName, volume, pitch)
+end
+
+def bkb_play_music(musicName, volume, pitch)
+  soundLookup = BKB::SOUND_MANAGER::SOUND_HASH[musicName]
+  if soundLookup
+   print("#{musicName} => #{soundLookup} ")
+   musicName = soundLookup 
+ end
+ return if musicName == ""
+  print("#{$game_system.playtime}: Playing music '#{musicName}' at #{volume}% volume with pitch #{pitch}\n") if BKB::SOUND_MANAGER::DEBUG
+  #play sound
+  sound = RPG::BGM.new(musicName, volume, pitch).play
+end

@@ -1,0 +1,70 @@
+#==============================================================================
+# 
+# BKB extentions - Text from a .txt file
+# -- Last Updated: 5-13-2014
+# -- Author: Kyle Bryant
+# 
+#==============================================================================
+$imported = {} if $imported.nil?
+$imported["BKB-SplashScreenTitle"] = true
+#==============================================================================
+# Overloads the Scene Title to display group logo and splashscreen.
+# Also loads configuration options if present.
+#==============================================================================
+
+class Scene_Title < Scene_Base
+  
+  
+  alias bkb_logo_start   start
+
+  def start
+    super
+    # load .txt config file here for resolution and language
+    bkb_logo_start if $TEST
+    return if $TEST
+    SceneManager.clear
+    Graphics.fadeout(0)
+    Graphics.wait(20)
+    create_logo
+    Graphics.fadein(60)
+    Graphics.wait(40)
+    #play sound
+    RPG::SE.new("dbz_logo_sound", 80, 50).play
+    create_year
+    Graphics.wait(55)
+    #kill sound
+    RPG::SE.stop
+    Graphics.fadeout(30)
+    Graphics.wait(40)
+    dispose_logo
+    Graphics.fadein(0)
+    bkb_logo_start
+  end
+  
+  #Create and display Logo
+  def create_logo
+    @sprite1 = Sprite.new
+    @sprite1.bitmap = Cache.title1('logo')
+    center_sprite(@sprite1)
+  end
+  
+  #Create and display year made
+  def create_year
+    @sprite2 = Sprite.new
+    @sprite2.bitmap = Cache.title1('logo_year')
+    @sprite2.ox = @sprite2.bitmap.width / 2
+    @sprite2.oy = @sprite2.bitmap.height / 2
+    @sprite2.x = Graphics.width / 2
+    @sprite2.y = Graphics.height / 2 +60
+  end
+  
+  #remove logo and year
+  def dispose_logo
+    @sprite1.bitmap.dispose
+    @sprite1.dispose
+    @sprite2.bitmap.dispose
+    @sprite2.dispose
+  end
+
+end
+# end of title scene

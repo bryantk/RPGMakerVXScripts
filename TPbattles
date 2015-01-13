@@ -1,0 +1,108 @@
+
+# Edits the behaviour of TP in game. 
+
+
+module BKB
+  module BATTLE
+    TPMax = 100                             #max TP
+    BegingingTPMin = 30                      #minimume  starting TP
+    BeginingTPModificationVariableNo = 41    #variable number to add to starting TP
+    StartTPVarianceVariableNo = 42               #variable number to use for variance*[-1..1] to add to starting TP
+    TPChargeRateModifier = 0                #global TCR modifier... depreciated?
+    BuffRateModifier = 0.20                 #percentage buff raises stats
+    
+    TotalFavorVariableNo = 43               #variable number to store end battle total favor
+  end
+end
+
+module BattleManager
+  #define aliases
+  class << self
+    include BKB
+    alias banshi_battle_end battle_end
+  end
+  
+  #total up party TP (favor) and save
+  def self.battle_end(result) 
+    totalTP = 0;
+    $game_party.battle_members.each { |member|
+      totalTP += member.tp
+    }
+    totalTP /= $game_party.battle_members.length
+    if BKB::BATTLE::TotalFavorVariableNo > 0
+      $game_variables[BKB::BATTLE::TotalFavorVariableNo] = totalTP
+    end
+    banshi_battle_end(result)
+  end
+end   #end BattleManager overrides
+
+
+class Game_Battler < Game_BattlerBase
+include BKB
+# Resets initial Battle TP to 'BeginmingTP'
+  alias banshi_init_tp   init_tp
+   def init_tp
+    rng = Random.new
+    temp = BKB::BATTLE::BegingingTPMin 
+    temp += $game_variables[BKB::BATTLE::BeginingTPModificationVariableNo] if BKB::BATTLE::BeginingTPModificationVariableNo > 0
+    variance = rng.rand(-$game_variables[BKB::BATTLE::StartTPVarianceVariableNo]..$game_variables[BKB::BATTLE::StartTPVarianceVariableNo])
+    temp += variance if BKB::BATTLE::StartTPVarianceVariableNo > 0
+    temp = 0 if temp < 0
+    self.tp = temp
+  end
+# Resets the TP gained when damage is recieved  
+  alias banshi_charge_tp_by_damage  charge_tp_by_damage 
+   def charge_tp_by_damage(damage_rate)  # damage rate = dmg recieved / max hp
+      self.tp += 50 * damage_rate * tcr * BKB::BATTLE::TPChargeRateModifier
+    end
+    
+# reDefines max TP level  
+  alias banshi_max_tp  max_tp  
+   def max_tp
+    return BKB::BATTLE::TPMax
+  end
+# fixes TP to be correct percentage. <Current/max> rather than <Current/100>
+  alias banshi_tp_rate  tp_rate  
+    def tp_rate
+    @tp.to_f / max_tp
+  end
+  
+  #--------------------------------------------------------------------------
+  # * Get Rate of Change Due to Parameter Buff/Debuff
+  #--------------------------------------------------------------------------
+  alias banshi_param_buff_rate  param_buff_rate  
+    def param_buff_rate(param_id)
+      @buffs[param_id] * BKB::BATTLE::BuffRateModifier + 1.0
+    end
+  #-------
+  
+# adds luck to critical chance
+  alias banshi_item_cri item_cri
+  def item_cri(user, item)
+    item.damage.critical ? user.cri * (1 - cev) + ((user.luk - luk)*0.01) : 0
+  end
+# chage skill for use. Modified to take skill notes to return TP
+  alias banshi_pay_skill_cost pay_skill_cost
+  def pay_skill_cost(skill)
+    self.mp -= skill_mp_cost(skill)
+    self.tp -= skill_tp_cost(skill)
+    
+    skill.note.split(/[\r\n]+/).each { |line|
+      match = line.match(/<(?:MOD_TP|mod tp): (-?\d+)>/i)
+      if match
+        #self.tp += match[1].to_i
+        $game_party.battle_members.each { |member|
+          member.tp += match[1].to_i
+        }
+      end
+      match = line.match(/<(?:VAR_UP|var up): (\d+)>/i)
+      if match
+        if match[1].to_i >= 0
+          $game_variables[match[1].to_i] += 1 
+        end
+      end
+    } #end split.case
+    
+  end
+  
+end

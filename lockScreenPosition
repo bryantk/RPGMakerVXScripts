@@ -1,0 +1,104 @@
+#==============================================================================
+# 
+# BKB variables - MAde specificaly for this game...
+# -- Last Updated: 5-17-2014
+# -- Author: Kyle Bryant
+# 
+#==============================================================================
+$imported = {} if $imported.nil?
+$imported["BKB-variables"] = true
+
+# not the most well planned script or idea...
+# but it does lock the camera from moving. Great to lock the screen for Zelda (NES)
+# like scenes.
+#
+#
+#
+class BKB_Variables
+  #--------------------------------------------------------------------------
+  # * Public Instance Variables
+  #--------------------------------------------------------------------------
+  attr_accessor   :scroll_lock                  # lock scrolling?
+  attr_accessor   :resolution                   # game resolution
+  attr_accessor   :x_pos                        # 
+  attr_accessor   :y_pos                        # 
+  #--------------------------------------------------------------------------
+  # * Object Initialization
+  #--------------------------------------------------------------------------
+  def initialize()
+    @scroll_lock = false
+    @resolution = 1
+    $game_variables[10] = 1
+  end
+  
+  def lock_at(x,y)
+    @scroll_lock = true
+    @x_pos = x
+    @y_pos = y
+    $game_map.set_display_pos(x, y)
+  end
+  
+  def load_lock()
+    return unless @scroll_lock
+    lock_at(@x_pos, @y_pos)
+  end
+  
+  def setResolution(value)
+    resolution = value;
+    File.open("text/config", 'w+') {|f|
+      f.puts("resolution: #{resolution};")
+      f.puts("#resolution values: 0=320x240, 1=800x600 native, 2=800x600, 3=1280x960, 4=fit screen")
+    }
+    case resolution
+      when 0
+        Window_Resize.r(320, 240)
+      when 2
+        Window_Resize.r(800, 600)
+      when 3
+        Window_Resize.r(1280, 960)
+      when 4
+        Window_Resize.f
+      else
+        Window_Resize.r(640, 480)
+    end
+  end
+  
+  
+end
+
+#Alias things
+module DataManager
+  class <<self
+    #define all objects
+    alias bkb_insertdata_create_game_objects	create_game_objects
+    def create_game_objects
+      bkb_insertdata_create_game_objects
+      $bkb_variables     = BKB_Variables.new
+    end
+    #save all ojbects
+	alias bkb_insertdata_make_save_contents	make_save_contents
+	def make_save_contents
+		contents = bkb_insertdata_make_save_contents
+		contents[:bkbvars]         = $bkb_variables  # added
+		contents
+	end
+	#load objects
+	alias bkb_insertdata_extract_save_contents	extract_save_contents
+	def extract_save_contents(contents)
+		bkb_insertdata_extract_save_contents(contents)
+		$bkb_variables     = contents[:bkbvars]  # added
+    $bkb_variables.setResolution($bkb_variables.resolution)
+    $bkb_variables.load_lock()
+  end
+  
+  end
+end
+#
+class Game_Player < Game_Character
+    alias bkb_ds_update_scroll  update_scroll
+    def update_scroll(last_real_x, last_real_y)
+      #KYLE return here to disable scrolling
+      return if $bkb_variables.scroll_lock
+      bkb_ds_update_scroll(last_real_x, last_real_y)
+    end
+end
