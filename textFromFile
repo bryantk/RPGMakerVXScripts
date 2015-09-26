@@ -1,74 +1,81 @@
-#==============================================================================
+#===============================================================================
 # 
 # BKB extensions - Text from a .txt file
-# -- Last Updated: 5-17-2014
+# -- Last Updated: 9-25-2015
 # -- Author: Kyle Bryant
 # 
-#==============================================================================
+#===============================================================================
 $imported = {} if $imported.nil?
 $imported["BKB-TextFromTxt"] = true
-#==============================================================================
+#===============================================================================
 # Updates
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # 5.13.2014 - Started and Finished Script.
-# 5.17.2014 - cleaned up code and added \var{iables}
-#==============================================================================
-# Introduction
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# This script allows in game messages to be pulled from a seperate text file.
-# A bit more work to setup, but allows for easier editing, translation, and more
+# 8.25.2015 - Extended core features
+# 9.25.2015	- PEP 8 compliant (python I know, but it is a good idea for all)
 # 
-#==============================================================================
+#===============================================================================
+# Introduction
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# This script allows text for your game to come from .txt files rather than the
+# RPG Maker editor. This has three very nice features:
+#	1: Text is in one place and won't be lost within an event on some map
+#	2: Text can be edited on the fly(ish) and the results show in game
+#	3: Change the root path from say "English" to "Spanish" and localization is 
+#		done (amusing you have the same set-up in the new folder chain)
+# 
+#===============================================================================
 # Instructions
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # To install this script, open up your script editor and copy/paste this script
 # to an open slot below 'Materials' but above 'Main'. Remember to save.
-# Create and place .txt files you wish to use in a folder named 'Text' at the
-# project root.  Such that  from the game.exe we see "Text">"file to use.txt"
+# Create a folder named 'Text' at the project root. Fill this file with .txt
+# files you wish to pull from. If using YEA-MessageSystem, place this script
+# below it
 #
 # To Use:
-#  Within a message event, enter the tag "\mes.FILE_NAME_HERE.TAG"
+#  Within a message event, enter the tag "\mes.FILE_NAME.TAG"
 #  The script will replace the \mes command with text from the FILE_NAME that 
-#  corresponds to the TAG entered. If no FILE_NAME is provided (i.e. "\mes.TAG")
-#  the "DEFAULT_FILE" will be substituted for FILE_NAME.
+#  corresponds to the TAG entered.
 #  Messaged in the txt file support all of RPGMaker's escape characters as well
 #  as Yanfly - Ace Message System. 
 #  .txt only commands are:
 #
-#   \mes.NAME_OF_FILE.TAG_NAME    #this is what the script will hunt for. It will
-#                                   grab all text between the tag and the "\end-"
-#                                   the next \mes tag, or the file end, whichever
-#                                   comes first
+#   \mes.NAME_OF_FILE.TAG_NAME    
+#					This is what the script will hunt for. It will grab all text
+#					between the tag itself and the '\end-' or the next \mes tag,
+#					or the file end, whichever comes first
+#   \end-           
+#					Stops the script. Any text on the line will not be used
+#   #Blah blah blah              
+#					Hashtags comments the line out (script ignores the line)
+#   \face FACE_SHEET INDEX        
+#					inserts a face image from the FACE_SHEET image at the
+#					defined INDEX. FACE_SHEET must be a in your FACES/ folder
+#   \var{NAME}=VARIABLE CONTENT
+#					Defines NAME as VARIABLE CONTENT. Use this command at the
+#					top of the .txt file or variables may be skipped    
+#   \var{NAME}                    
+#					replaces itself with the string NAME was tied to with the
+#					previous command. When called on the \mes line, it can be
+#					used to call \name and \face commands, otherwise this 
+#					command is useful for people who change their minds about
+#					story or reuse similar text often
 #
-#   \end-                         #stops the script on this line. Any text on the
-#                                   line will not be used
+#	Must have 'Yanfly - Ace Message System' installed for the following:
 #
-#   # Blah blah blah              #Hashtags comment the line out (script ignores)
+#   \name POSITION NAME
+#					when placed on the same line as the \mes tag the NAME will
+#					be drawn in a name box at the listed POSITION.
+#					Valid locations are "left","l","center","c","right", or "r"
+#                   '_' will be converted into spaces, for compound names
 #
-#   \name POSITION NAME           # ONLY WORKS WITH Yanfly's Ace Message System
-#                                 when placed on the same line as the \mes tag
-#                                 the NAME will be drawn in a name box at the
-#                                 listed POSITION, valid locations are
-#                                 "left","l","center","c","right", or "r"
-#
-#   \face FACE_SHEET INDEX        #inserts a face image from the FACE_SHEET image
-#                                 at the defined INDEX. FACE_SHEET must be a in
-#                                 your FACES/ folder
-#
-#   \var{NAME}="STRING_HERE"      #ties a string (enclosed in "") to the NAME
-#                                 please define variables near the top of the
-#                                 .txt file to keep things speedy! 
-#                                 
-#   \var{NAME}                    #replaces itself with the string NAME was tied 
-#                                 to with the previous command.
-#                                 When called on the \mes line, it can be used to
-#                                 call \name and \face commands, otherwise this
-#                                 command is useful for people who change their
-#                                 minds about story or reuse similar text often
-#==============================================================================
+# CAUTION, the script does not like 'right single quotes' (\x92 error). If you
+# see this error, try replacing your (')s
+#===============================================================================
 # Sample Message.txt file
 =begin
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    Example .txt file named 'example.txt' 
 #A nice comment here to remind me I used this file for the example map
 \var{MAIN_CHARACTER}="\face Actor1 1 \name left Hero"
@@ -118,150 +125,167 @@ more if you ever change his name or face later.
                                                        \end-  #50 characters out
 =end
 #  See the default message.txt for more information
-#==============================================================================
+#===============================================================================
 # Compatibility
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # This script is made strictly for RPG Maker VX Ace, but it is mostly ruby
-# regular expressions. If the script does not work, it is most likey due to 
-#  a lack of 'def convert_escape_characters(text)' in the Window class
-#==============================================================================
-
-
-#==============================================================================
+# regular expressions. If the script does not work, it is most likely due to 
+# a lack of 'def convert_escape_characters(text)' in the Window class
+#===============================================================================
 # Configuration
-#==============================================================================
-
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 module BKB
   module TEXT_FROM_TXT
-    DEFAULT_FILE = "messages"     #name of default .txt file to look for in the Text folder
-    DEFAULT_ERROR = "I AM ERROR"  #set to "" to spit out message text
+    # Directory in which to find source .txt files
+	# Change this in a new build for localization (better support coming)
+    DEFAULT_PATH = "Text"
+	# If something goes wrong, this text will show up in the message
+    DEFAULT_ERROR = "I AM ERROR"
+	# Kill the game and raise error if an error is encountered
+	ERROR_OUT = false
   end
 end
-#==============================================================================
-# ÅEditing anything past this point may potentially be very dangerous to your
-# project's stability and very existence. DO NOT ATTEMPT... That is unless you
+#===============================================================================
+# ¬ÅEditting anything past this point may potentially be very dangerous to your
+# project's stability and very ability to turn on. DO NOT ATTEMPT... Unless you
 # know what you are doing, then please go right ahead and muck about in my code.
-# Just be sure to give me credit for the base and don't mock my flaws. The code
+# Just be sure to give me credit for the base and don't mock my flaws; The code
 # is very sensitive about its self image. May the segfaults never find you.
-#==============================================================================
+#===============================================================================
 # Licensing + Legal
-# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Text From Txt by Kyle Bryant is licensed under a Creative Commons 
 # Attribution-ShareAlike 4.0 International License.
 # The above ^^^ MUST appear in your usage and/or modifications of this work
 # This work is free to use for any project, but please credit me somewhere
-# (somewhere visible is preferred),  and let me know what you used this script for
-# on twitter @segFaultOnLine1 so I can get hyped about it as well!
+# (somewhere visible is preferred), and let me know what you used this script
+# for on twitter @segFaultOnLine1 so I can get hyped about it as well!
 # Donations are always appreciated, such as cookies or a copy of your game.
 # Good luck and happy development!
-#==============================================================================
-# Å! BKB extentions - Text from a .txt file
-#==============================================================================
+#===============================================================================
+# ¬Å! BKB extensions - Text from a .txt file
+#===============================================================================
 
+#===============================================================================
+# ** BKB extensions - Text from a .txt file GUTS
+#===============================================================================
+#-------------------------------------------------------------------------------
+# Using parsed ID, find corresponding message
+#-------------------------------------------------------------------------------
+def get_txt_string(key, id)
+	myFile = File.expand_path(BKB::TEXT_FROM_TXT::DEFAULT_PATH+"/"+key+".txt")
+	if (!FileTest.exists?(myFile))
+		if BKB::TEXT_FROM_TXT::ERROR_OUT
+			raise "BKB Text from Text\nNo such file\n'#{myFile}'"
+		end
+		return "BKB Text from Text\nNo such file\n'#{myFile}'" 
+	end
+	text_variables = Hash.new
+	# populate variables from a txt source
+	fileObj = File.new(myFile, "r")
+	#For Each line	
+	while (line = fileObj.gets)
+		if (line =~ /\\var{\w+}=.+/)
+			print "moo"
+			key, value = line.match(/\\var{(.+)}=(.+)/).captures
+			print key
+			print "\n"
+			print value
+			text_variables[key] = value
+		end
+		#Found desired key, get text
+		if (line =~ /^\\#{id}\s/)
+			line = commands(line, text_variables)
+			# if face tag found
+			if (line =~ /\\face/)
+				regex = /face (.+?) (\d+?)\W/
+				face_file, face_index = line.match(regex).captures
+				$game_message.face_name = face_file
+				$game_message.face_index = face_index.to_i
+			end
+			output = ""
+			#if YEA's messaging add-on is present, look for and add name boxes
+			if ($imported["YEA-MessageSystem"] && line =~ /\\name \D+ .+/)
+				regex = /name (\D+?) ((\\n\[\d])|(.+?))\W/
+				name_pos, char_name = line.match(regex).captures
+				name_pos = name_pos.downcase
+				name_pos = "\\n<" if (name_pos=="left" or name_pos=="l")
+				name_pos = "\\nc<" if (name_pos=="center" or name_pos=="c")
+				name_pos = "\\nr<" if (name_pos=="right" or name_pos=="r")
+				name_pos += char_name + ">"
+				output += name_pos
+			end
+			# ----------------------------------
+			# Parse remaining lines for text
+			# ----------------------------------
+			while (line = fileObj.gets)
+				if (line =~ /^\\mes\./) or (line =~ /\\end-/)
+					fileObj.close
+					return output
+				end
+				#replace text variables
+				line = commands(line, text_variables)
+				output += line if !(line =~ /^\#/)
+			end
+			fileObj.close
+			return output
+		end
+	end
+	fileObj.close
+	return BKB::TEXT_FROM_TXT::DEFAULT_ERROR
+end
+  
+	
+def commands(line, text_variables)
+	# Replace 'var's
+	while (line =~ /\\var{.+}/)
+		key = line.match(/\\var{(\w+)}/).captures[0]
+		if not text_variables.has_key?(key)
+			text_variables[key] = "'#{key}' NOT FOUND"
+		end
+		line = line.gsub(/\\var{#{key}}/, text_variables[key])
+	end
+	# if show image tag found
+	if (line =~ /\\img /)
+		x = 0
+		y = 0
+		should_flip = false
+		regex = /\\img (\S+) id=(\d+) x=(-?\d+) y=(-?\d+)(?: f=([\d|t]))?/
+		image, id, x, y, flip = line.match(regex).captures
+		should_flip = true if flip
+		if $imported["YEA-FlipPicture"]
+			$game_switches[21] = should_flip
+		end
+		$game_map.screen.pictures[id.to_i].show(image,0,x,y,100,100,255,0)
+	end
 
-#==============================================================================
+	# if erase image tag found
+	if (line =~ /\\erase /)
+		id = line.match(/\\erase (\d+)/).captures[0]
+		$game_map.screen.pictures[id.to_i].erase
+	end
+	return line
+end
+  
+#===============================================================================
+#
+# ** Aliases
+#
+#===============================================================================
 # ** Window_Base
-#==============================================================================
+#===============================================================================
 class Window_Base < Window
 
-  alias kyle_getFromTXT_convert_escape_characters     convert_escape_characters
+    alias bkb_TextFromTXT_convert_escape_characters	  convert_escape_characters
 
-  def convert_escape_characters(text)
-    #chomp the newline
-    text = text.chomp
-    #split the text
-    parser = text.split('.')
-    #if starts with '\mes' command
-    if (parser[0] == "\\mes")
-      if (parser[2])
-         text = get_txt_string(parser[1], text)
-       else
-         text = get_txt_string(BKB::TEXT_FROM_TXT::DEFAULT_FILE, text)
-      end
-    end
-    #run the normal and remaning character escape conversions
-    kyle_getFromTXT_convert_escape_characters(text)
-  end
-    
+	def convert_escape_characters(text)
+		text = text.chomp
+		parser = text.split('.')
+		# if message begins with "\mes.file.id" parse it
+		if (parser[0] == "\\mes" && parser.count == 3)
+			text = get_txt_string(parser[1], text)
+		end
+		# run the normal and renaming character escape conversions
+		bkb_TextFromTXT_convert_escape_characters(text)
+	end  
 end
-#==============================================================================
-# ** BKB extentions - Text from a .txt file GUTS
-#==============================================================================
-  #--------------------------------------------------------------------------
-  # Using parsed ID, find corrisponding message
-  #--------------------------------------------------------------------------
-  def get_txt_string(file, id)
-    return BKB::TEXT_FROM_TXT::DEFAULT_ERROR+"\nNo file '#{file}' exists" if (!FileTest.exists?("Text/"+file+".txt"))
-    fileObj = File.new("Text/"+file+".txt", "r")  #location of txt file from game root      
-    while (line = fileObj.gets)
-      if (line =~ /^\\#{id}\s/)
-        #replace text variables
-        line = replaceVars(line, file)
-        
-        # if face tage found
-        if (line =~ /\\face .+ \d+/)
-          face_file, face_index = line.match(/face (.+?) (\d+?)\W/).captures
-          $game_message.face_name = face_file
-          $game_message.face_index = face_index.to_i
-        end
-        
-        #build empty string to add messagegs too
-        output = ""
-        
-        #if YEA's messaging add-on is present, do look for and add name boxes
-        if ($imported["YEA-MessageSystem"])
-          if (line =~ /\\name \D+ .+/)
-            name_pos, char_name = line.match(/name (\D+?) ((\\n\[\d])|(.+?))\W/).captures
-            char_name = char_name.gsub("_"," ")
-            name_pos = name_pos.downcase
-            name_pos = "\\n<" if (name_pos=="left" or name_pos=="l")
-            name_pos = "\\nc<" if (name_pos=="center" or name_pos=="c")
-            name_pos = "\\nr<" if (name_pos=="right" or name_pos=="r")
-            name_pos += char_name + ">"
-            output += name_pos
-          end
-        end
-      
-        while (line = fileObj.gets)
-          if (line =~ /^\\mes\./) or (line =~ /\\end-/)
-            fileObj.close
-            return output
-          end
-          #replace text variables
-          line = replaceVars(line, file)
-          output += line if !(line =~ /^\#/)
-        end
-            
-        fileObj.close
-        return output
-      end
-    end
-    fileObj.close
-    return BKB::TEXT_FROM_TXT::DEFAULT_ERROR
-  end
-  
-  def replaceVars(line, file)
-    if (line=~/\\var{.+}/)
-      varTest =  line.scan(/\\var{(\w+)}/)
-      varTest.each { |x|
-        print("seeking: \\var{#{x[0]}}=****\n")
-        # find value of variable
-        varValue = "'Var Not Found'"
-        fileObj2 = File.new("Text/"+file+".txt", "r")  #open the file a second time
-        while (line2 = fileObj2.gets)
-          if (line2 =~ /^\\var{#{x[0]}}=.*/)
-            varValue = line2.scan(/^\\var{#{x[0]}}=\W*"(.*)"/)[0][0]
-            print(varValue);
-            break
-          end
-        end
-        fileObj2.close
-        #replace in line variable with its value
-        line = line.gsub(/\\var{(#{x[0]})}/,varValue)
-      }
-      #line = line.replace(/\\var{(\w+)}/, "moo")
-    end
-    return line
-  end
-  
-  
