@@ -1,7 +1,7 @@
 #==============================================================================
 # 
 # BKB extentions - Sound Manager
-# -- Last Updated: 10-12-2014
+# -- Last Updated: 1-3-2017
 # -- Author: Kyle Bryant
 # 
 #==============================================================================
@@ -21,12 +21,19 @@ $imported["BKB-SoundManager"] = true
 #==============================================================================
 # Instructions
 # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-# To install this script, open up your script editor and copy/paste this script
-# to an open slot below 'Materials' but above 'Main'. Remember to save.
+# Paste script below 'Materials' but above 'Main'. Remember to save.
 #
-# Rather than call a sound with a hard linked drag and drop, call the sound 
-# 'code name' via script. If you need to change the sound later, simply edit the
-# links in the script rather than hunt down every instance.
+# play sound
+#   play_sound(name, volume=100, pitch=100) 
+# play music
+#   play_music(name, volume=100, pitch=100)
+#
+# Use the code rather than WYSIWYG if sound/music is in flux in your project.
+# For example, it is much easier to create a hash with 'step1' and 'step2' two
+# sounds. Later decide you want a single step sound so you point both to the
+# same sound, only to later relize you do want two sounds. Much easier than
+# going through all the events and places in RPG Maker and changing sound
+# values.
 #==============================================================================
 # Compatibility
 # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -43,16 +50,15 @@ module BKB
   module SOUND_MANAGER
     DEBUG = true 
     SOUND_HASH = {
-      "pound" => "dbz_pound",
-      "drinkDown" => "dbz_pound",
-      "itemGet" => "dbz_ui_ShopBuy",
-      "moveBox" => "dbz_heavyMovement",
-      "bell" => "Bell"
+      "key" => "sound_file"
+    }
+    MUSIC_HASH = {
+      "key" => "music_file"
     }
   end
 end
 #==============================================================================
-# Editing anything past this point may potentially be very dangerous to your
+# ÂEditing anything past this point may potentially be very dangerous to your
 # project's stability and very existence. DO NOT ATTEMPT... That is unless you
 # know what you are doing, then please go right ahead and muck about in my code.
 # Just be sure to give me credit for the base and don't mock my flaws. The code
@@ -69,45 +75,37 @@ end
 # Donations are always appreciated, such as cookies or a copy of your game.
 # Good luck and happy development!
 #==============================================================================
-# ! BKB extensions - Sound Manager
+# Â! BKB extensions - Sound Manager
 #==============================================================================
 
 
 #==============================================================================
 # ** Teh Code
 #==============================================================================
+class Game_Interpreter
+  
+  alias bkb_sounder_game_interperter_initialize initialize
+  def initialize(depth = 0)
+    bkb_sounder_game_interperter_initialize
+    @soundCache = BKB::SOUND_MANAGER::SOUND_HASH
+    @musicCache = BKB::SOUND_MANAGER::MUSIC_HASH
+    @debugSounds = BKB::SOUND_MANAGER::DEBUG
+    @debugMessage = "%ss: Playing %s '%s' at %d volume with pitch %s"
+  end
+  
+  def play_sound(name, volume=100, pitch=100)
+    name = @soundCache[name] || @soundCache[name.downcase!] || name
+    return if name.to_s == ''
+    puts @debugMessage % [$game_system.playtime.to_s, "sound", name, volume.to_s, pitch.to_s] if @debugSounds
+    RPG::SE.new(name, volume, pitch).play
+    puts $game_system.playtime.class
+  end
+  
+  def play_music(name, volume=100, pitch=100)
+    name = @musicCache[name] || @musicCache[name.downcase!] || name
+    return if name.to_s == ''
+    puts @debugMessage % [$game_system.playtime.to_s, "music", name, volume.to_s, pitch.to_s] if @debugSounds
+    RPG::BGM.new(name, volume, pitch).play
+  end
 
-
-def PlaySound(soundName, volume=100, pitch=100)
-  bkb_play_sound(soundName, volume, pitch)
-end
-
-def bkb_play_sound(soundName, volume, pitch)
-  soundLookup = BKB::SOUND_MANAGER::SOUND_HASH[soundName]
-  if soundLookup
-   print("#{soundName} => #{soundLookup} ")
-   soundName = soundLookup 
- end
- return if soundName == ""
-  print("#{$game_system.playtime}: Playing sound '#{soundName}' at #{volume}% volume with pitch #{pitch}\n") if BKB::SOUND_MANAGER::DEBUG
-  #play sound
-  sound = RPG::SE.new(soundName, volume, pitch).play
-end
-
-
-
-def PlayMusic(musicName, volume=100, pitch=100)
-  bkb_play_music(musicName, volume, pitch)
-end
-
-def bkb_play_music(musicName, volume, pitch)
-  soundLookup = BKB::SOUND_MANAGER::SOUND_HASH[musicName]
-  if soundLookup
-   print("#{musicName} => #{soundLookup} ")
-   musicName = soundLookup 
- end
- return if musicName == ""
-  print("#{$game_system.playtime}: Playing music '#{musicName}' at #{volume}% volume with pitch #{pitch}\n") if BKB::SOUND_MANAGER::DEBUG
-  #play sound
-  sound = RPG::BGM.new(musicName, volume, pitch).play
 end
