@@ -1,0 +1,193 @@
+#===============================================================================
+# 
+# BKB extensions - Party Guests
+# -- Last Updated: 1-2-2017
+# -- Author: Kyle Bryant
+# 
+#===============================================================================
+
+$imported = {} if $imported.nil?
+$imported["BKB-Leader_Followers"] = true
+#===============================================================================
+# Updates
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# 1.2.2017 - Started and Finished Script.
+# 
+#===============================================================================
+# Introduction
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Allows extra party members that are not in battle or the menu.
+#===============================================================================
+# Instructions
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# call script
+# $game_player.change_leaders(list, of, ids, here, or, none)
+# $game_player.change_followers(list, of, ids, here, or, none)
+# NOTE
+# I have yet to figure out dispose/refresh of the party... so after calling
+# said scripts, transfer to a new map.
+#===============================================================================
+# Compatibility
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# This script is made strictly for RPG Maker VX Ace, put before Main.
+#===============================================================================
+# Configuration
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+module BKB
+  module LEADERSFOLLOWERS
+    LEADERS = [1]   # the defualt leaders
+    FOLLOWERS = []  # degault followers
+    UNIQUE = true
+  end
+end
+#===============================================================================
+# Editting anything past this point may potentially be very dangerous to your
+# project's stability and very ability to turn on. DO NOT ATTEMPT... Unless you
+# know what you are doing, then please go right ahead and muck about in my code.
+# Just be sure to give me credit for the base and don't mock my flaws; The code
+# is very sensitive about its self image. May the segfaults never find you.
+#===============================================================================
+# Licensing + Legal
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Text From Txt by Kyle Bryant is licensed under a Creative Commons 
+# Attribution-ShareAlike 4.0 International License.
+# The above ^^^ MUST appear in your usage and/or modifications of this work
+# This work is free to use for any project, but please credit me somewhere
+# (somewhere visible is preferred), and let me know what you used this script
+# for on twitter @segFaultOnLine1 so I can get hyped about it as well!
+# Donations are always appreciated, such as cookies or a copy of your game.
+# Good luck and happy development!
+#===============================================================================
+# ! BKB extensions - Party Guests
+#===============================================================================
+
+
+#==============================================================================
+# ** Game_Player
+#==============================================================================
+class Game_Player < Game_Character
+  #--------------------------------------------------------------------------
+  # * Public Instance Variables
+  #--------------------------------------------------------------------------
+  attr_accessor :leaders                # Leader (actor)
+  attr_accessor :extra_followers
+  
+  #--------------------------------------------------------------------------
+  # * Object Initialization
+  #--------------------------------------------------------------------------
+  alias bkb_game_player_initialize initialize
+  def initialize
+    @leaders = BKB::LEADERSFOLLOWERS::LEADERS
+    @extra_followers = BKB::LEADERSFOLLOWERS::FOLLOWERS
+    bkb_game_player_initialize
+  end    
+  
+  #--------------------------------------------------------------------------
+  # * Change The Leader
+  #--------------------------------------------------------------------------
+  def change_leaders(*leaders)
+    @leaders = leaders.empty? ? [] : leaders
+    redefine_leaders_followers
+  end
+  
+  def change_followers(*followers)
+    @extra_followers = followers.empty? ? [] : followers
+    redefine_leaders_followers
+  end
+  
+  def redefine_leaders_followers
+    @followers.synchronize(@x, @y, @direction)
+    @followers.create_follower_data(self)
+    refresh
+  end
+  
+  #---------------------------------------------------------------------------
+  # * Get Corresponding Actor
+  #---------------------------------------------------------------------------
+  alias bkb_game_player_actor actor
+  def actor
+    @leaders.empty? ? bkb_game_player_actor : $game_actors[@leaders[0]]
+  end
+  
+end
+
+
+#==============================================================================
+# ** Game_Follower
+#==============================================================================
+
+class Game_Follower < Game_Character
+  attr_accessor :override_actor
+
+  def self.new_any_actor(member_index, preceding_character)
+    follower = self.new(member_index, preceding_character)
+    follower.override_actor = true
+    return follower
+  end
+  #--------------------------------------------------------------------------
+  # * Get Corresponding Actor
+  #--------------------------------------------------------------------------
+  alias bkb_game_follower_actor actor
+  def actor
+    override_actor ? $game_actors[@member_index] : bkb_game_follower_actor
+  end
+end
+
+
+#==============================================================================
+# ** Game_Actor   Expose actor_id
+#==============================================================================
+
+class Game_Actor < Game_Battler
+  attr_accessor :actor_id
+  end
+
+#==============================================================================
+# ** Game_Followers
+#==============================================================================
+
+class Game_Followers
+  attr_accessor :data
+  
+  alias bkb_game_followers_initialize initialize
+  def initialize(leader)
+    return unless $game_player
+    bkb_game_followers_initialize(leader)
+    @visible = $data_system.opt_followers
+    @gathering = false                    # Gathering processing underway flag
+    create_follower_data(leader)
+  end
+  
+  def create_follower_data(leader)
+    unique_guests = BKB::LEADERSFOLLOWERS::UNIQUE
+    @data = []
+    party = $game_party.members.map{ |x| x.actor_id}
+    # Add Leaders
+    leaders = $game_player.leaders - (unique_guests ? party : [])
+    start_index = 2
+    if leaders.empty?         # normal battle party only  
+      @data.push(Game_Follower.new(1, leader))
+      start_index = 2
+    elsif leaders.count == 1  # one leader
+      @data.push(Game_Follower.new(0, leader))
+      start_index = 1
+    else                      # many leaders
+      @data.push(Game_Follower.new_any_actor(leaders[1], leader))
+      (2...leaders.count).each do |index|
+        @data.push(Game_Follower.new_any_actor(leaders[index], @data[-1]))
+      end
+      start_index = 0
+    end
+    # Add battle members
+    (start_index...$game_party.max_battle_members).each do |index|
+      @data.push(Game_Follower.new(index, @data[-1]))
+    end
+    # Add Followers
+    bkb_followers = $game_player.extra_followers - (unique_guests ? party + leaders : [])
+    bkb_followers.each { |index|
+      @data.push(Game_Follower.new_any_actor(index, @data[-1]))
+    }
+  end
+  
+  
+end
