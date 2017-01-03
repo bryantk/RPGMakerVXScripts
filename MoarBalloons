@@ -1,0 +1,139 @@
+#===============================================================================
+# 
+# BKB extensions - Moar Balloon Icons
+# -- Last Updated: 1-2-2017
+# -- Author: Kyle Bryant
+# 
+#===============================================================================
+$imported = {} if $imported.nil?
+$imported["BKB-TextFromTxt"] = true
+#===============================================================================
+# Updates
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# 1.2.2017 - Started and Finished Script.
+# 
+#===============================================================================
+# Introduction
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Allows unlimited balloon effects when called by script.
+# Also ties sound effects to balloon icons.
+# Also slows the speed of balloon icons.
+#===============================================================================
+# Instructions
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Paste this script somewhere above Main
+# Normal WYSIWYG balloons will use defined sounds and newly defined source image.
+# Code wise '$game_player.balloon_id = 4' will now accept aliased 'strings' or
+# numbers based on the LOOKUP index.
+#===============================================================================
+# Compatibility
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# This script is made strictly for RPG Maker VX Ace, put before Main.
+#===============================================================================
+# Configuration
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+module BKB
+  module MOAR_BALLOONS
+    SPEED = 16
+    WAIT = 24
+    LOOKUP = {
+    # index, source image, alias name, sound effect name
+      5 => ["Balloon", "sleep", "Bite"],
+      4 => ["Balloon2", "lies", nil]
+    }
+    DEFAULT_SOUND = nil
+  end
+end
+#===============================================================================
+# Editting anything past this point may potentially be very dangerous to your
+# project's stability and very ability to turn on. DO NOT ATTEMPT... Unless you
+# know what you are doing, then please go right ahead and muck about in my code.
+# Just be sure to give me credit for the base and don't mock my flaws; The code
+# is very sensitive about its self image. May the segfaults never find you.
+#===============================================================================
+# Licensing + Legal
+# =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Text From Txt by Kyle Bryant is licensed under a Creative Commons 
+# Attribution-ShareAlike 4.0 International License.
+# The above ^^^ MUST appear in your usage and/or modifications of this work
+# This work is free to use for any project, but please credit me somewhere
+# (somewhere visible is preferred), and let me know what you used this script
+# for on twitter @segFaultOnLine1 so I can get hyped about it as well!
+# Donations are always appreciated, such as cookies or a copy of your game.
+# Good luck and happy development!
+#===============================================================================
+# ! BKB extensions - Moar Balloon Icons
+#===============================================================================
+
+class Sprite_Character < Sprite_Base
+  
+  
+  
+  alias bkb_initialize initialize
+  def initialize(viewport, character = nil)
+    @bkblookup = BKB::MOAR_BALLOONS::LOOKUP
+    @balloonSpeed = BKB::MOAR_BALLOONS::SPEED
+    @balloonWait = BKB::MOAR_BALLOONS::WAIT
+    @balloonSound = BKB::MOAR_BALLOONS::DEFAULT_SOUND
+    bkb_initialize(viewport, character)
+  end
+  
+  def setup_new_effect
+    if !animation? && @character.animation_id > 0
+      animation = $data_animations[@character.animation_id]
+      start_animation(animation)
+    end
+    # Cast calls by name to numbers
+    if @character.balloon_id.class != Fixnum
+      target = @character.balloon_id.downcase
+      target = @bkblookup.find{|r| target == r[1][1]}
+      if target
+        @character.balloon_id = target[0]
+      else
+        puts "WARNING - No balloon entery for: '#{@character.balloon_id}'"
+        @character.balloon_id = 0
+      end
+    end
+    if !@balloon_sprite && @character.balloon_id > 0
+      @balloon_id = @character.balloon_id
+      start_balloon
+    end
+  end
+  
+  #--------------------------------------------------------------------------
+  # * Start Balloon Icon Display
+  #--------------------------------------------------------------------------
+  def start_balloon
+    dispose_balloon
+    @balloon_duration = 8 * balloon_speed + balloon_wait
+    @balloon_sprite = ::Sprite.new(viewport)
+    source = @bkblookup[@character.balloon_id]
+    source = ["Balloon", @character.balloon_id, nil] if source == nil
+    @balloon_id = (@character.balloon_id - 1) % 10 + 1
+    @balloon_sprite.bitmap = Cache.system(source[0])
+    @balloon_sprite.ox = 16
+    @balloon_sprite.oy = 32
+    sound = source[2] || @balloonSound
+    if sound
+      if $imported["BKB-SoundManager"]
+        PlaySound(sound)
+      else
+        RPG::SE.new(sound, 80, 100).play
+      end
+    end
+    update_balloon
+  end
+
+  #--------------------------------------------------------------------------
+  # * Balloon Icon Display Speed
+  #--------------------------------------------------------------------------
+  def balloon_speed
+    return @balloonSpeed
+  end
+  #--------------------------------------------------------------------------
+  # * Wait Time for Last Frame of Balloon
+  #--------------------------------------------------------------------------
+  def balloon_wait
+    return @balloonWait
+  end
+end
