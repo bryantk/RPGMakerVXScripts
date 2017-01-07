@@ -1,7 +1,7 @@
 #===============================================================================
 # 
 # BKB extensions - Party Guests
-# -- Last Updated: 1-2-2017
+# -- Last Updated: 1-7-2017
 # -- Author: Kyle Bryant
 # 
 #===============================================================================
@@ -151,10 +151,8 @@ class Game_Followers
   
   alias bkb_game_followers_initialize initialize
   def initialize(leader)
-    return unless $game_player
     bkb_game_followers_initialize(leader)
-    @visible = $data_system.opt_followers
-    @gathering = false                    # Gathering processing underway flag
+    return unless $game_player
     create_follower_data(leader)
   end
   
