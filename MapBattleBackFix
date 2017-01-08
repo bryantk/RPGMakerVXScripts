@@ -1,0 +1,16 @@
+#===============================================================================
+# Yet another example of the quality of RPG Maker /s
+# battleback1_bitmap's if statement is broken by default. This fixes it.
+# If no battle back is given, BG will be the map itself (spun and blurry)
+# Paste above main, or replace the offending original code.
+#===============================================================================
+
+class Spriteset_Battle
+  def battleback1_bitmap
+    if !battleback1_name.empty?
+      Cache.battleback1(battleback1_name)
+    else
+      create_blurry_background_bitmap
+    end
+  end
+end
