@@ -1,0 +1,41 @@
+# Allows for the on map status damagecolor flash and walking on damaging FLooR tile flash colors to be different.
+class Game_Screen
+  
+  # Defines a new method that takes 4 variables: R, G, B, A
+  # A is optional and if not given will default to 128
+  def flash_color_for_damage(r, g, b, a=128)
+    #Call an 8 frame screen flash based on our RGPA given.
+    start_flash(Color.new(r,g,b,a), 8)
+  end  
+end
+
+# telling the code we want to add to this class
+class Game_Actor < Game_Battler
+
+  # this plays when we take 20 steps on the map and have states that hurt us
+  def turn_end_on_map
+    if $game_party.steps % steps_for_turn == 0
+      on_turn_end
+      if $imported["YEA-BattleEngine"]
+        # YEA-BattleEngine does some funky things to the @result variable..
+        @result.restore_damage
+      end
+      # Color for status damage on map here
+      perform_map_damage_effect(255, 0, 255) if @result.hp_damage > 0
+    end
+  end
+
+  # plays when we step on a damaging floor
+  def execute_floor_damage
+    damage = (basic_floor_damage * fdr).to_i
+    self.hp -= [damage, max_floor_damage].min
+    # Color for FLooR damage here
+    perform_map_damage_effect(255, 0, 0) if damage > 0
+  end
+
+  # Replacing the original to accept our 4 color numbers
+  def perform_map_damage_effect(r, g, b, a=128)
+    $game_map.screen.flash_color_for_damage(r, g, b, a)
+  end
+  
+end
