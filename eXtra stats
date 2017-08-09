@@ -1,0 +1,161 @@
+# Create a hash on each actor to stash extra stats.
+class Game_Actor < Game_Battler
+  
+  PARAM_LOOKUP = {
+    "mhp" => 0,
+    "mmp" => 1,
+    "atk" => 2,
+    "def" => 3,
+    "mat" => 4,
+    "mdf" => 5,
+    "agi" => 6,
+    "luk" => 7,
+    }
+  XPARAM_LOOKUP = {
+    "hit" => 0,
+    "eva" => 1,
+    "cri" => 2,
+    "cev" => 3,
+    "mev" => 4,
+    "mrf" => 5,
+    "cnt" => 6,
+    "hrg" => 7,
+    "mrg" => 8,
+    #"trg" => 9,
+    }
+  SPARAM_LOOKUP = {
+    "tgr" => 0,
+    "grd" => 1,
+    "rec" => 2,
+    "pha" => 3,
+    "mcr" => 4,
+    #"tcr" => 5,
+    "pdr" => 6,
+    "mdr" => 7,
+    "fdr" => 8,
+    "exr" => 9,
+    }
+  # TODO - map these to the ids in the database
+  WPARAM_LOOKUP = {
+    "sword" => 0,
+    "twoH" => 1,
+    "ax" => 2,
+    "mace" => 3,
+    "knife" => 4,
+    "staff" => 5,
+    }
+  
+  alias_method :bkb_initialize, :initialize
+  def initialize(actor_id)
+    bkb_initialize(actor_id)
+    @extraParams = Hash.new(Array)
+    for i in 0..10
+      @extraParams["sparam#{i}"] = Array.new
+      @extraParams["xparam#{i}"] = Array.new
+      next if i > 5
+      @extraParams["wparam#{i}"] = Array.new
+    end
+  end
+  
+  def xparam(xparam_id)
+    total = features_sum(FEATURE_XPARAM, xparam_id)
+    extra = @extraParams["xparam#{xparam_id}"]
+    total += extra.inject(0.0) {|r, ft| r += ft }
+    return total
+  end
+  
+  # Adds 'extra' extra params
+  def sparam(sparam_id)
+    total = features_pi(FEATURE_SPARAM, sparam_id)
+    extra = @extraParams["sparam#{sparam_id}"]
+    total *= extra.inject(1.0) {|r, ft| r *= ft }
+    return total
+  end
+  
+  def wparamByName(name)
+    puts name
+    return wparam(WPARAM_LOOKUP[name])
+  end
+  
+  def wparam(wparam_id)
+    puts wparam_id
+    extra = @extraParams["wparam#{wparam_id}"]
+    return extra.inject(1.0) {|r, ft| r += ft }
+  end
+  
+  # publics
+=begin
+  def mhp;  param(0);	end				  # MHP  Maximum Hit Points
+  def mmp;  param(1);	end				  # MMP  Maximum Magic Points
+  def atk;  param(2);	end				  # ATK  ATtacK power
+  def def;  param(3);	end				  # DEF  DEFense power
+  def mat;  param(4);	end				  # MAT  Magic ATtack power
+  def mdf;  param(5);	end				  # MDF  Magic DeFense power
+  def agi;  param(6);	end				  # AGI  AGIlity
+  def luk;  param(7);	end				  # LUK  LUcK
+	 
+  def hit;  xparam(0);  end				# HIT  HIT rate
+  def eva;  xparam(1);  end				# EVA  EVAsion rate
+  def cri;  xparam(2);  end				# CRI  CRItical rate
+  def cev;  xparam(3);  end				# CEV  Critical EVasion rate
+  def mev;  xparam(4);  end				# MEV  Magic EVasion rate
+  def mrf;  xparam(5);  end				# MRF  Magic ReFlection rate
+  def cnt;  xparam(6);  end				# CNT  CouNTer attack rate
+  def hrg;  xparam(7);  end				# HRG  Hp ReGeneration rate
+  def mrg;  xparam(8);  end				# MRG  Mp ReGeneration rate
+  ##def trg;  xparam(9);  end				# TRG  Tp ReGeneration rate
+  
+  def tgr;  sparam(0);  end				# TGR  TarGet Rate
+  def grd;  sparam(1);  end				# GRD  GuaRD effect rate
+  def rec;  sparam(2);  end				# REC  RECovery effect rate
+  def pha;  sparam(3);  end				# PHA  PHArmacology
+  def mcr;  sparam(4);  end				# MCR  Mp Cost Rate
+  ##def tcr;  sparam(5);  end				# TCR  Tp Charge Rate
+  def pdr;  sparam(6);  end				# PDR  Physical Damage Rate
+  def mdr;  sparam(7);  end				# MDR  Magical Damage Rate
+  def fdr;  sparam(8);  end				# FDR  Floor Damage Rate
+  def exr;  sparam(9);  end				# EXR  EXperience Rate
+    
+  weapon Params
+  0: swords
+  1: 2H sword
+  2: Ax
+  3: mace
+  4: knife
+  5: stave
+=end  
+
+  def add_stats(stat_name, value)
+    puts "Adding #{value} to #{stat_name}"
+    if PARAM_LOOKUP.key?(stat_name)
+      add_param(PARAM_LOOKUP[stat_name], value)
+      return
+    elsif XPARAM_LOOKUP.key?(stat_name)
+      add_xparam(XPARAM_LOOKUP[stat_name], value)
+      return
+    elsif SPARAM_LOOKUP.key?(stat_name)
+      add_sparam(SPARAM_LOOKUP[stat_name], value)
+      return
+    elsif WPARAM_LOOKUP.key?(stat_name)
+      add_wparam(WPARAM_LOOKUP[stat_name], value)
+      return
+    end
+    puts "Param '#{stat_name}' not found!"
+  end
+
+  def add_xparam(xparam_id, value)
+    xparam_id = XPARAM_LOOKUP[xparam_id] if xparam_id.is_a? String
+    @extraParams["xparam#{xparam_id}"].push(value)
+  end
+  
+  def add_sparam(sparam_id, value)
+    sparam_id = SPARAM_LOOKUP[sparam_id] if sparam_id.is_a? String
+    @extraParams["sparam#{sparam_id}"].push(value)
+  end
+  
+  def add_wparam(wparam_id, value)
+    wparam_id = WPARAM_LOOKUP[wparam_id] if wparam_id.is_a? String
+    @extraParams["wparam#{wparam_id}"].push(value)
+  end
+  
+end
